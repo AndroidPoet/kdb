@@ -41,6 +41,35 @@ public class AutoTable<R : Any>(
         serializer.serialize(encoder, row)
         return encoder.values
     }
+
+    public companion object {
+        public fun inferTableName(descriptor: SerialDescriptor): String {
+            return descriptor.serialName.substringAfterLast('.').lowercase()
+        }
+
+        public fun generateCreateTableSql(serializer: KSerializer<*>, customTableName: String? = null): String {
+            val descriptor = serializer.descriptor
+            val tableName = customTableName ?: inferTableName(descriptor)
+            
+            val columnsSql = (0 until descriptor.elementsCount).joinToString(", ") { i ->
+                val name = descriptor.getElementName(i)
+                val kind = descriptor.getElementDescriptor(i).kind
+                val sqlType = when (kind) {
+                    PrimitiveKind.LONG, PrimitiveKind.INT, PrimitiveKind.SHORT, PrimitiveKind.BYTE -> "INTEGER"
+                    PrimitiveKind.DOUBLE, PrimitiveKind.FLOAT -> "REAL"
+                    PrimitiveKind.BOOLEAN -> "INTEGER"
+                    else -> "TEXT"
+                }
+                
+                val primaryKey = if (name == "id" && sqlType == "INTEGER") " PRIMARY KEY" else ""
+                val notNull = if (!descriptor.getElementDescriptor(i).isNullable) " NOT NULL" else ""
+                
+                "$name $sqlType$primaryKey$notNull"
+            }
+            
+            return "CREATE TABLE IF NOT EXISTS $tableName ($columnsSql)"
+        }
+    }
 }
 
 @OptIn(ExperimentalSerializationApi::class)

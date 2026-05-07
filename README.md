@@ -51,27 +51,19 @@ dependencies {
 ```kotlin
 @Serializable
 data class Task(val id: Long, val title: String, val isDone: Boolean)
-
-// No manual Table definition needed! 
-// KDB automatically handles mapping via kotlinx-serialization.
-val taskTable = kdb.table<Task>("tasks")
 ```
 
-### 2. Initialize the Client
+### 2. Initialize KDB (Zero-SQL Auto-Schema!)
 
 ```kotlin
 val driver = CommonKdbDriver("my_app.db")
-val schema = SchemaDefinition(
-    migrations = listOf(
-        Migration(1, listOf("CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT, is_done INTEGER)"))
-    )
-)
 
 val kdb = createKdb(driver) {
-    this.schema = schema
+    // KDB will automatically generate the schema and run CREATE TABLE 
+    // for all registered entities when you open the database!
+    entities(Task.serializer())
 }
 
-// Open and run migrations
 kdb.open().onFailure { println("Database error: ${it.message}") }
 ```
 
@@ -80,17 +72,22 @@ kdb.open().onFailure { println("Database error: ${it.message}") }
 ```kotlin
 val task = Task(1, "Build KDB", false)
 
-// Insert
-kdb.query.insert(taskTable, task)
+// Insert (Table inferred automatically!)
+kdb.insert(task)
     .onSuccess { println("Task saved!") }
 
 // Query All
-val tasks = kdb.query.selectAll(taskTable).getOrElse { emptyList() }
+val tasks = kdb.selectAll<Task>().getOrElse { emptyList() }
+
+// Delete
+kdb.delete<Task>("id = 1")
 ```
 
 ### 4. Optional: Paging 3 Integration
 
 ```kotlin
+// Get the auto-generated table reference for advanced usage
+val taskTable = kdb.getTable<Task>()
 val pagingSource = KdbPagingSource(kdb.paging, taskTable)
 ```
 
