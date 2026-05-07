@@ -21,7 +21,7 @@
 5. `deleteById(id)`
 6. `getById(id)`
 7. `list(limit, afterId, idSelector)`
-8. `driver.transaction { ... }`
+8. `tx { ... }`
 
 ## Modules
 
@@ -41,9 +41,9 @@ val kdb = createKdb(driver) {
     entities(Task.serializer())
 }
 
-kdb.open()
+kdb.open() // suspend
 
-kdb.migrate(
+kdb.migrate( // suspend
     Migration(
         version = 1,
         upSql = listOf(
@@ -58,16 +58,16 @@ kdb.migrate(
     )
 )
 
-kdb.insert(Task(1, "Ship KDB", false))
-kdb.updateById(1, Task(1, "Ship KDB v1", false))
-val one = kdb.getById<Task>(1)
-kdb.deleteById<Task>(1)
+kdb.insert(Task(1, "Ship KDB", false)) // suspend
+kdb.updateById(1, Task(1, "Ship KDB v1", false)) // suspend
+val one = kdb.getById<Task>(1) // suspend
+kdb.deleteById<Task>(1) // suspend
 
-val page = kdb.list<Task>(limit = 20, afterId = null) { it.id }
+val page = kdb.list<Task>(limit = 20, afterId = null) { it.id } // suspend
 
-driver.transaction {
-    kdb.insert(Task(2, "A", false)).getOrThrow()
-    kdb.insert(Task(3, "B", false)).getOrThrow()
+kdb.tx {
+    insertResult(Task(2, "A", false)).getOrThrow()
+    insertResult(Task(3, "B", false)).getOrThrow()
 }
 ```
 
