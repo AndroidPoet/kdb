@@ -4,12 +4,6 @@
   <img src="art/kdb_logo.png" alt="KDB Logo" width="200"/>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Kotlin-2.1.10-blue?logo=kotlin" alt="Kotlin Version"/>
-  <img src="https://img.shields.io/badge/Platform-Multiplatform-orange" alt="Platform Support"/>
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
-</p>
-
 KDB is a lightweight, type-safe SQLite wrapper for Kotlin Multiplatform.
 
 ## Modules
@@ -19,24 +13,28 @@ KDB is a lightweight, type-safe SQLite wrapper for Kotlin Multiplatform.
 | `kdb` | Core library (driver + schema + query + paging + client API) |
 | `kdb-paging3` | Optional Paging 3 integration |
 
-## API Style
+## API Design
 
-KDB exposes two API styles:
-
-1. `suspend` APIs (`open`, `migrate`, `insert`, `updateById`, `deleteById`, `getById`, `list`, `tx`) that execute on a configured background dispatcher.
-2. `*Result` APIs (`openResult`, `migrateResult`, `insertResult`, etc.) that return `KdbResult<T>` for explicit error handling.
+- Primary API returns `KdbResult<T>`:
+  - `open`, `migrate`, `close`
+  - `insert`, `updateById`, `deleteById`, `getById`, `list`
+- Convenience `suspend` background APIs throw on failure:
+  - `openOrThrow`, `migrateOrThrow`, `closeOrThrow`
+  - `insertOrThrow`, `updateByIdOrThrow`, `deleteByIdOrThrow`, `getByIdOrThrow`, `listOrThrow`
+- Transaction helper:
+  - `suspend fun tx { ... }`
 
 ## Configuration
 
 ```kotlin
 val kdb = createKdb(driver) {
     entities(Task.serializer())
-    // optional, defaults to Dispatchers.Default
+    // optional, default: Dispatchers.Default
     // dispatcher = Dispatchers.IO
 }
 ```
 
-## Quick Start
+## Quick Start (Result-first)
 
 ```kotlin
 @Serializable
@@ -48,7 +46,6 @@ val kdb = createKdb(driver) {
 }
 
 kdb.open()
-
 kdb.migrate(
     Migration(
         version = 1,
@@ -70,20 +67,20 @@ val one = kdb.getById<Task>(1)
 kdb.deleteById<Task>(1)
 
 val page = kdb.list<Task>(limit = 20, afterId = null) { it.id }
-
-kdb.tx {
-    insertResult(Task(2, "A", false)).getOrThrow()
-    insertResult(Task(3, "B", false)).getOrThrow()
-}
 ```
 
-## Result API Example
+## Convenience (Suspend + Throwing)
 
 ```kotlin
-val result = kdb.insertResult(Task(10, "Explicit Result", false))
-result
-    .onSuccess { println("Inserted") }
-    .onFailure { println("Failed: ${it.message}") }
+kdb.openOrThrow()
+kdb.insertOrThrow(Task(2, "A", false))
+
+val page = kdb.listOrThrow<Task>(limit = 20) { it.id }
+
+kdb.tx {
+    insert(Task(3, "B", false)).getOrThrow()
+    insert(Task(4, "C", false)).getOrThrow()
+}
 ```
 
 ## License

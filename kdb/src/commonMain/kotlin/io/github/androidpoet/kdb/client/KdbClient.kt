@@ -35,13 +35,13 @@ public class KdbClient(
 
     public val dispatcher: CoroutineDispatcher get() = config.dispatcher
 
-    public fun openResult(): KdbResult<Unit> = driver.open()
+    public fun open(): KdbResult<Unit> = driver.open()
 
-    public fun migrateResult(vararg migrations: Migration): KdbResult<Unit> {
+    public fun migrate(vararg migrations: Migration): KdbResult<Unit> {
         return migrationRunner.migrate(migrations.toList())
     }
 
-    public fun closeResult(): KdbResult<Unit> = driver.close()
+    public fun close(): KdbResult<Unit> = driver.close()
 
     @Suppress("UNCHECKED_CAST")
     public inline fun <reified T : Any> getTable(): Table<T> {
@@ -51,23 +51,23 @@ public class KdbClient(
         } as Table<T>
     }
 
-    public inline fun <reified T : Any> insertResult(item: T): KdbResult<Unit> {
+    public inline fun <reified T : Any> insert(item: T): KdbResult<Unit> {
         return query.insert(getTable<T>(), item)
     }
 
-    public inline fun <reified T : Any> updateByIdResult(id: Long, item: T): KdbResult<Unit> {
+    public inline fun <reified T : Any> updateById(id: Long, item: T): KdbResult<Unit> {
         return query.updateById(getTable<T>(), item, id)
     }
 
-    public inline fun <reified T : Any> deleteByIdResult(id: Long): KdbResult<Unit> {
+    public inline fun <reified T : Any> deleteById(id: Long): KdbResult<Unit> {
         return query.deleteById(getTable<T>(), id)
     }
 
-    public inline fun <reified T : Any> getByIdResult(id: Long): KdbResult<T?> {
+    public inline fun <reified T : Any> getById(id: Long): KdbResult<T?> {
         return query.getById(getTable<T>(), id)
     }
 
-    public inline fun <reified T : Any> listResult(
+    public inline fun <reified T : Any> list(
         limit: Int = 20,
         afterId: Long? = null,
         noinline idSelector: (T) -> Long,
@@ -75,36 +75,36 @@ public class KdbClient(
         return paging.list(getTable<T>(), limit, afterId, idSelector)
     }
 
-    public suspend fun open(): Unit = withContext(dispatcher) { openResult().getOrThrow() }
+    public suspend fun openOrThrow(): Unit = withContext(dispatcher) { open().getOrThrow() }
 
-    public suspend fun migrate(vararg migrations: Migration): Unit = withContext(dispatcher) {
-        migrateResult(*migrations).getOrThrow()
+    public suspend fun migrateOrThrow(vararg migrations: Migration): Unit = withContext(dispatcher) {
+        migrate(*migrations).getOrThrow()
     }
 
-    public suspend fun close(): Unit = withContext(dispatcher) { closeResult().getOrThrow() }
+    public suspend fun closeOrThrow(): Unit = withContext(dispatcher) { close().getOrThrow() }
 
-    public suspend inline fun <reified T : Any> insert(item: T): Unit = withContext(dispatcher) {
-        insertResult(item).getOrThrow()
+    public suspend inline fun <reified T : Any> insertOrThrow(item: T): Unit = withContext(dispatcher) {
+        insert(item).getOrThrow()
     }
 
-    public suspend inline fun <reified T : Any> updateById(id: Long, item: T): Unit = withContext(dispatcher) {
-        updateByIdResult(id, item).getOrThrow()
+    public suspend inline fun <reified T : Any> updateByIdOrThrow(id: Long, item: T): Unit = withContext(dispatcher) {
+        updateById(id, item).getOrThrow()
     }
 
-    public suspend inline fun <reified T : Any> deleteById(id: Long): Unit = withContext(dispatcher) {
-        deleteByIdResult<T>(id).getOrThrow()
+    public suspend inline fun <reified T : Any> deleteByIdOrThrow(id: Long): Unit = withContext(dispatcher) {
+        deleteById<T>(id).getOrThrow()
     }
 
-    public suspend inline fun <reified T : Any> getById(id: Long): T? = withContext(dispatcher) {
-        getByIdResult<T>(id).getOrThrow()
+    public suspend inline fun <reified T : Any> getByIdOrThrow(id: Long): T? = withContext(dispatcher) {
+        getById<T>(id).getOrThrow()
     }
 
-    public suspend inline fun <reified T : Any> list(
+    public suspend inline fun <reified T : Any> listOrThrow(
         limit: Int = 20,
         afterId: Long? = null,
         noinline idSelector: (T) -> Long,
     ): Page<T> = withContext(dispatcher) {
-        listResult(limit, afterId, idSelector).getOrThrow()
+        list(limit, afterId, idSelector).getOrThrow()
     }
 
     public suspend fun <T> tx(block: KdbClient.() -> T): T = withContext(dispatcher) {
