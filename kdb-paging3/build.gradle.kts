@@ -32,7 +32,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api(project(":kdb-paging"))
+            api(project(":kdb"))
             api(libs.androidx.paging.common)
         }
         commonTest.dependencies {

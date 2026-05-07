@@ -35,6 +35,8 @@ kotlin {
             api(libs.kotlinx.coroutines.core)
             api(libs.kotlinx.serialization.json)
             api(libs.kotlinx.datetime)
+            api(libs.androidx.sqlite)
+            implementation(libs.androidx.sqlite.bundled)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -44,11 +46,11 @@ kotlin {
 }
 
 android {
-    namespace = "io.github.androidpoet.kdb.core"
+    namespace = "io.github.androidpoet.kdb"
     compileSdk = KdbConfiguration.COMPILE_SDK
     defaultConfig { minSdk = KdbConfiguration.MIN_SDK }
 }
 
 mavenPublishing {
-    coordinates(KdbConfiguration.GROUP, "kdb-core", KdbConfiguration.VERSION)
+    coordinates(KdbConfiguration.GROUP, "kdb", KdbConfiguration.VERSION)
 }

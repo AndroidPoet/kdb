@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
 </p>
 
-**KDB** is a lightweight, type-safe, and modular SQLite wrapper built for Kotlin Multiplatform.
+**KDB** is a lightweight, type-safe SQLite wrapper built for Kotlin Multiplatform.
 
 ## Core API (Simple by design)
 
@@ -27,13 +27,8 @@
 
 | Module | Description |
 | :--- | :--- |
-| `kdb-core` | Result types, errors, and SQL primitives |
-| `kdb-driver` | SQLite driver abstraction + bundled implementation |
-| `kdb-schema` | Explicit SQL migrations |
-| `kdb-query` | Typed CRUD operations |
-| `kdb-paging` | Keyset paging |
+| `kdb` | Core library with driver, schema, query, paging, and client API |
 | `kdb-paging3` | Optional Paging 3 integration |
-| `kdb-client` | High-level client facade |
 
 ## Quick Start
 
