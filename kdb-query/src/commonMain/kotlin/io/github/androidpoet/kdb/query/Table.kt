@@ -6,16 +6,27 @@ import io.github.androidpoet.kdb.driver.KdbCursor
 public interface Table<R : Any> {
     public val tableName: String
     public val columns: List<Column<*>>
-    
+
+    /**
+     * Name of primary key column used by default CRUD and keyset paging helpers.
+     */
+    public val idColumn: String get() = "id"
+
     public fun fromRow(cursor: KdbCursor): R
     public fun toValues(row: R): Map<String, SqlValue>
 }
 
 public data class Column<T>(
     val name: String,
-    val type: ColumnType
+    val type: ColumnType,
 )
 
 public enum class ColumnType {
-    LONG, DOUBLE, TEXT, BLOB, BOOLEAN, INSTANT, LOCAL_DATE_TIME
+    LONG,
+    DOUBLE,
+    TEXT,
+    BLOB,
+    BOOLEAN,
+    INSTANT,
+    LOCAL_DATE_TIME,
 }

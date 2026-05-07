@@ -10,92 +10,72 @@
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
 </p>
 
-**KDB** is a lightweight, type-safe, and modular SQLite wrapper built specifically for **Kotlin Multiplatform**. It brings the ergonomics of a modern SDK to local SQLite development, allowing you to share your data layer across Android, iOS, JVM, and more.
+**KDB** is a lightweight, type-safe, and modular SQLite wrapper built for Kotlin Multiplatform.
 
-## ✨ Features
+## Core API (Simple by design)
 
-- **🚀 Truly Multiplatform**: Powered by the official `androidx.sqlite` KMP library.
-- **🛡️ Type-Safe CRUD**: Map objects to tables with zero reflection.
-- **📜 Atomic Migrations**: Version-controlled schema management with automatic rollbacks.
-- **💎 Functional Results**: Error handling inspired by `SupabaseResult` with `onSuccess`/`onFailure` chaining.
-- **⏭️ Keyset Pagination**: High-performance paging that scales with your data.
-- **🧩 Modular Design**: Only use what you need. Paging 3 is optional!
+1. `open()`
+2. `migrate(vararg Migration)`
+3. `insert(item)`
+4. `updateById(id, item)`
+5. `deleteById(id)`
+6. `getById(id)`
+7. `list(limit, afterId, idSelector)`
+8. `driver.transaction { ... }`
 
-## 📦 Modules
+## Modules
 
 | Module | Description |
 | :--- | :--- |
-| `kdb-core` | Result types, error hierarchy, and SQL primitives. |
-| `kdb-driver` | Unified SQLite driver based on `BundledSQLiteDriver`. |
-| `kdb-schema` | Schema definitions and migration runner. |
-| `kdb-query` | The typed query engine for CRUD operations. |
-| `kdb-paging` | Core keyset pagination logic. |
-| `kdb-paging3` | **Optional** integration for Jetpack Paging 3 (KMP). |
-| `kdb-client` | Ergonomic entrypoint and configuration DSL. |
+| `kdb-core` | Result types, errors, and SQL primitives |
+| `kdb-driver` | SQLite driver abstraction + bundled implementation |
+| `kdb-schema` | Explicit SQL migrations |
+| `kdb-query` | Typed CRUD operations |
+| `kdb-paging` | Keyset paging |
+| `kdb-paging3` | Optional Paging 3 integration |
+| `kdb-client` | High-level client facade |
 
-## 🛠️ Installation
-
-```kotlin
-// commonMain
-dependencies {
-    implementation("io.github.androidpoet:kdb-client:0.1.0")
-    // Optional: for Paging 3 support
-    implementation("io.github.androidpoet:kdb-paging3:0.1.0")
-}
-```
-
-## 📖 Quick Start
-
-### 1. Define your Entity
+## Quick Start
 
 ```kotlin
 @Serializable
-data class Task(val id: Long, val title: String, val isDone: Boolean)
-```
+data class Task(val id: Long, val title: String, val done: Boolean)
 
-### 2. Initialize KDB (Zero-SQL Auto-Schema!)
-
-```kotlin
 val driver = CommonKdbDriver("my_app.db")
-
 val kdb = createKdb(driver) {
-    // KDB will automatically generate the schema and run CREATE TABLE 
-    // for all registered entities when you open the database!
     entities(Task.serializer())
 }
 
-kdb.open().onFailure { println("Database error: ${it.message}") }
+kdb.open()
+
+kdb.migrate(
+    Migration(
+        version = 1,
+        upSql = listOf(
+            """
+            CREATE TABLE IF NOT EXISTS task (
+              id INTEGER PRIMARY KEY,
+              title TEXT NOT NULL,
+              done INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+    )
+)
+
+kdb.insert(Task(1, "Ship KDB", false))
+kdb.updateById(1, Task(1, "Ship KDB v1", false))
+val one = kdb.getById<Task>(1)
+kdb.deleteById<Task>(1)
+
+val page = kdb.list<Task>(limit = 20, afterId = null) { it.id }
+
+driver.transaction {
+    kdb.insert(Task(2, "A", false)).getOrThrow()
+    kdb.insert(Task(3, "B", false)).getOrThrow()
+}
 ```
 
-### 3. Fluent CRUD Operations
-
-```kotlin
-val task = Task(1, "Build KDB", false)
-
-// Insert (Table inferred automatically!)
-kdb.insert(task)
-    .onSuccess { println("Task saved!") }
-
-// Query All
-val tasks = kdb.selectAll<Task>().getOrElse { emptyList() }
-
-// Delete
-kdb.delete<Task>("id = 1")
-```
-
-### 4. Optional: Paging 3 Integration
-
-```kotlin
-// Get the auto-generated table reference for advanced usage
-val taskTable = kdb.getTable<Task>()
-val pagingSource = KdbPagingSource(kdb.paging, taskTable)
-```
-
-## 📄 License
+## License
 
 KDB is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
----
-<p align="center">
-  Built with ❤️ for the Kotlin Multiplatform ecosystem by <a href="https://github.com/AndroidPoet">AndroidPoet</a>.
-</p>

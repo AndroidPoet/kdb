@@ -1,54 +1,42 @@
 package io.github.androidpoet.kdb.client
 
 import io.github.androidpoet.kdb.core.KdbResult
-import io.github.androidpoet.kdb.core.flatMap
 import io.github.androidpoet.kdb.driver.KdbDriver
 import io.github.androidpoet.kdb.paging.KdbPagingEngine
+import io.github.androidpoet.kdb.paging.Page
 import io.github.androidpoet.kdb.query.AutoTable
 import io.github.androidpoet.kdb.query.KdbQueryEngine
 import io.github.androidpoet.kdb.query.Table
+import io.github.androidpoet.kdb.schema.Migration
 import io.github.androidpoet.kdb.schema.MigrationRunner
-import io.github.androidpoet.kdb.schema.SchemaDefinition
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer
 
 public class KdbClient(
     public val driver: KdbDriver,
-    private val config: KdbConfig
+    private val config: KdbConfig,
 ) {
     public val query: KdbQueryEngine = KdbQueryEngine(driver)
-    public val paging: KdbPagingEngine = KdbPagingEngine(driver, query)
+    public val paging: KdbPagingEngine = KdbPagingEngine(query)
     private val migrationRunner = MigrationRunner(driver)
-    
+
     @PublishedApi
     internal val tables: MutableMap<String, Table<*>> = mutableMapOf()
 
     init {
-        // Pre-register tables from config
         config.entities.forEach { serializer ->
             val name = AutoTable.inferTableName(serializer.descriptor)
             tables[serializer.descriptor.serialName] = AutoTable(name, serializer as KSerializer<Any>)
         }
     }
 
-    public fun open(): KdbResult<Unit> {
-        return driver.open().flatMap {
-            // Run manual migrations if any
-            migrationRunner.migrate(config.schema.migrations)
-        }.flatMap {
-            // Run auto-schema creation for registered entities
-            var result: KdbResult<Unit> = KdbResult.success(Unit)
-            config.entities.forEach { serializer ->
-                val sql = AutoTable.generateCreateTableSql(serializer)
-                result = result.flatMap { driver.execute(sql) }
-            }
-            result
-        }
+    public fun open(): KdbResult<Unit> = driver.open()
+
+    public fun migrate(vararg migrations: Migration): KdbResult<Unit> {
+        return migrationRunner.migrate(migrations.toList())
     }
 
-    public fun close(): KdbResult<Unit> {
-        return driver.close()
-    }
+    public fun close(): KdbResult<Unit> = driver.close()
 
     @Suppress("UNCHECKED_CAST")
     public inline fun <reified T : Any> getTable(): Table<T> {
@@ -58,24 +46,33 @@ public class KdbClient(
         } as Table<T>
     }
 
-    // --- High-Level DX CRUD Methods ---
-
     public inline fun <reified T : Any> insert(item: T): KdbResult<Unit> {
         return query.insert(getTable<T>(), item)
     }
 
-    public inline fun <reified T : Any> selectAll(): KdbResult<List<T>> {
-        return query.selectAll(getTable<T>())
+    public inline fun <reified T : Any> updateById(id: Long, item: T): KdbResult<Unit> {
+        return query.updateById(getTable<T>(), item, id)
     }
 
-    public inline fun <reified T : Any> delete(whereClause: String): KdbResult<Unit> {
-        return driver.execute("DELETE FROM ${getTable<T>().tableName} WHERE $whereClause")
+    public inline fun <reified T : Any> deleteById(id: Long): KdbResult<Unit> {
+        return query.deleteById(getTable<T>(), id)
+    }
+
+    public inline fun <reified T : Any> getById(id: Long): KdbResult<T?> {
+        return query.getById(getTable<T>(), id)
+    }
+
+    public inline fun <reified T : Any> list(
+        limit: Int = 20,
+        afterId: Long? = null,
+        noinline idSelector: (T) -> Long,
+    ): KdbResult<Page<T>> {
+        return paging.list(getTable<T>(), limit, afterId, idSelector)
     }
 }
 
 public class KdbConfig {
     public var name: String = "kdb.db"
-    public var schema: SchemaDefinition = SchemaDefinition(emptyList())
     public val entities: MutableList<KSerializer<out Any>> = mutableListOf()
 
     public fun entities(vararg serializers: KSerializer<out Any>) {
