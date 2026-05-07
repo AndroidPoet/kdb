@@ -10,25 +10,31 @@
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
 </p>
 
-**KDB** is a lightweight, type-safe SQLite wrapper built for Kotlin Multiplatform.
-
-## Core API (Simple by design)
-
-1. `open()`
-2. `migrate(vararg Migration)`
-3. `insert(item)`
-4. `updateById(id, item)`
-5. `deleteById(id)`
-6. `getById(id)`
-7. `list(limit, afterId, idSelector)`
-8. `tx { ... }`
+KDB is a lightweight, type-safe SQLite wrapper for Kotlin Multiplatform.
 
 ## Modules
 
 | Module | Description |
 | :--- | :--- |
-| `kdb` | Core library with driver, schema, query, paging, and client API |
+| `kdb` | Core library (driver + schema + query + paging + client API) |
 | `kdb-paging3` | Optional Paging 3 integration |
+
+## API Style
+
+KDB exposes two API styles:
+
+1. `suspend` APIs (`open`, `migrate`, `insert`, `updateById`, `deleteById`, `getById`, `list`, `tx`) that execute on a configured background dispatcher.
+2. `*Result` APIs (`openResult`, `migrateResult`, `insertResult`, etc.) that return `KdbResult<T>` for explicit error handling.
+
+## Configuration
+
+```kotlin
+val kdb = createKdb(driver) {
+    entities(Task.serializer())
+    // optional, defaults to Dispatchers.Default
+    // dispatcher = Dispatchers.IO
+}
+```
 
 ## Quick Start
 
@@ -41,9 +47,9 @@ val kdb = createKdb(driver) {
     entities(Task.serializer())
 }
 
-kdb.open() // suspend
+kdb.open()
 
-kdb.migrate( // suspend
+kdb.migrate(
     Migration(
         version = 1,
         upSql = listOf(
@@ -58,12 +64,12 @@ kdb.migrate( // suspend
     )
 )
 
-kdb.insert(Task(1, "Ship KDB", false)) // suspend
-kdb.updateById(1, Task(1, "Ship KDB v1", false)) // suspend
-val one = kdb.getById<Task>(1) // suspend
-kdb.deleteById<Task>(1) // suspend
+kdb.insert(Task(1, "Ship KDB", false))
+kdb.updateById(1, Task(1, "Ship KDB v1", false))
+val one = kdb.getById<Task>(1)
+kdb.deleteById<Task>(1)
 
-val page = kdb.list<Task>(limit = 20, afterId = null) { it.id } // suspend
+val page = kdb.list<Task>(limit = 20, afterId = null) { it.id }
 
 kdb.tx {
     insertResult(Task(2, "A", false)).getOrThrow()
@@ -71,6 +77,15 @@ kdb.tx {
 }
 ```
 
+## Result API Example
+
+```kotlin
+val result = kdb.insertResult(Task(10, "Explicit Result", false))
+result
+    .onSuccess { println("Inserted") }
+    .onFailure { println("Failed: ${it.message}") }
+```
+
 ## License
 
-KDB is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
+KDB is licensed under the MIT License. See [LICENSE](LICENSE).
