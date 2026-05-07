@@ -46,31 +46,15 @@ dependencies {
 
 ## 📖 Quick Start
 
-### 1. Define your Table
+### 1. Define your Entity
 
 ```kotlin
+@Serializable
 data class Task(val id: Long, val title: String, val isDone: Boolean)
 
-object TaskTable : Table<Task> {
-    override val tableName = "tasks"
-    override val columns = listOf(
-        Column<Long>("id", ColumnType.LONG),
-        Column<String>("title", ColumnType.TEXT),
-        Column<Boolean>("is_done", ColumnType.BOOLEAN)
-    )
-
-    override fun fromRow(cursor: KdbCursor) = Task(
-        id = cursor.getLong(cursor.getColumnIndex("id")),
-        title = cursor.getText(cursor.getColumnIndex("title")),
-        isDone = cursor.getLong(cursor.getColumnIndex("is_done")) == 1L
-    )
-
-    override fun toValues(row: Task) = mapOf(
-        "id" to SqlValue.LongValue(row.id),
-        "title" to SqlValue.TextValue(row.title),
-        "is_done" to SqlValue.BooleanValue(row.isDone)
-    )
-}
+// No manual Table definition needed! 
+// KDB automatically handles mapping via kotlinx-serialization.
+val taskTable = kdb.table<Task>("tasks")
 ```
 
 ### 2. Initialize the Client
@@ -97,18 +81,17 @@ kdb.open().onFailure { println("Database error: ${it.message}") }
 val task = Task(1, "Build KDB", false)
 
 // Insert
-kdb.query.insert(TaskTable, task)
+kdb.query.insert(taskTable, task)
     .onSuccess { println("Task saved!") }
 
 // Query All
-val tasks = kdb.query.selectAll(TaskTable).getOrElse { emptyList() }
+val tasks = kdb.query.selectAll(taskTable).getOrElse { emptyList() }
 ```
 
 ### 4. Optional: Paging 3 Integration
 
 ```kotlin
-val pagingSource = KdbPagingSource(kdb.paging, TaskTable)
-val pager = Pager(PagingConfig(20)) { pagingSource }
+val pagingSource = KdbPagingSource(kdb.paging, taskTable)
 ```
 
 ## 📄 License

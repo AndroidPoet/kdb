@@ -29,6 +29,22 @@ public sealed interface SqlValue {
     public data class BooleanValue(val value: kotlin.Boolean) : SqlValue
     public data class InstantValue(val value: Instant) : SqlValue
     public data class LocalDateTimeValue(val value: LocalDateTime) : SqlValue
+
+    public companion object {
+        public fun from(value: Any?): SqlValue = when (value) {
+            null -> Null
+            is kotlin.Long -> LongValue(value)
+            is Int -> LongValue(value.toLong())
+            is kotlin.Double -> DoubleValue(value)
+            is Float -> DoubleValue(value.toDouble())
+            is String -> TextValue(value)
+            is ByteArray -> BlobValue(value)
+            is kotlin.Boolean -> BooleanValue(value)
+            is Instant -> InstantValue(value)
+            is LocalDateTime -> LocalDateTimeValue(value)
+            else -> TextValue(value.toString())
+        }
+    }
 }
 
 public interface KdbLogger {

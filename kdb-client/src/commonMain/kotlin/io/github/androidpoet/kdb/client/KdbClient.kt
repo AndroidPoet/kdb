@@ -4,9 +4,12 @@ import io.github.androidpoet.kdb.core.KdbResult
 import io.github.androidpoet.kdb.core.flatMap
 import io.github.androidpoet.kdb.driver.KdbDriver
 import io.github.androidpoet.kdb.paging.KdbPagingEngine
+import io.github.androidpoet.kdb.query.AutoTable
 import io.github.androidpoet.kdb.query.KdbQueryEngine
+import io.github.androidpoet.kdb.query.Table
 import io.github.androidpoet.kdb.schema.MigrationRunner
 import io.github.androidpoet.kdb.schema.SchemaDefinition
+import kotlinx.serialization.serializer
 
 public class KdbClient(
     public val driver: KdbDriver,
@@ -35,4 +38,8 @@ public class KdbConfig {
 public fun createKdb(driver: KdbDriver, block: KdbConfig.() -> Unit = {}): KdbClient {
     val config = KdbConfig().apply(block)
     return KdbClient(driver, config.schema)
+}
+
+public inline fun <reified T : Any> KdbClient.table(name: String): Table<T> {
+    return AutoTable(name, serializer<T>())
 }
