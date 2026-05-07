@@ -4,11 +4,38 @@ import io.github.androidpoet.kdb.core.KdbError
 import io.github.androidpoet.kdb.core.KdbResult
 import io.github.androidpoet.kdb.core.SqlValue
 import io.github.androidpoet.kdb.driver.KdbDriver
+import io.github.androidpoet.kdb.query.AutoTable
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.serializer
 
 public data class Migration(
     val version: Int,
     val upSql: List<String>,
 )
+
+public class MigrationBuilder internal constructor() {
+    private val statements: MutableList<String> = mutableListOf()
+
+    public fun sql(statement: String) {
+        statements.add(statement)
+    }
+
+    public inline fun <reified T : Any> createTable(tableName: String? = null) {
+        createTable(serializer<T>(), tableName)
+    }
+
+    public fun createTable(serializer: KSerializer<*>, tableName: String? = null) {
+        statements.add(AutoTable.generateCreateTableSql(serializer, tableName))
+    }
+
+    internal fun build(version: Int): Migration = Migration(version = version, upSql = statements.toList())
+}
+
+public fun migration(version: Int, block: MigrationBuilder.() -> Unit): Migration {
+    val builder = MigrationBuilder()
+    builder.block()
+    return builder.build(version)
+}
 
 public class MigrationRunner(private val driver: KdbDriver) {
     public fun migrate(migrations: List<Migration>): KdbResult<Unit> {

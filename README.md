@@ -47,18 +47,11 @@ val kdb = createKdb(driver) {
 
 kdb.open()
 kdb.migrate(
-    Migration(
-        version = 1,
-        upSql = listOf(
-            """
-            CREATE TABLE IF NOT EXISTS task (
-              id INTEGER PRIMARY KEY,
-              title TEXT NOT NULL,
-              done INTEGER NOT NULL
-            )
-            """.trimIndent()
-        )
-    )
+    migration(1) {
+        createTable<Task>("task")
+        // or raw SQL when needed:
+        // sql("CREATE INDEX IF NOT EXISTS idx_task_done ON task(done)")
+    }
 )
 
 kdb.insert(Task(1, "Ship KDB", false))
