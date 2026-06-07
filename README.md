@@ -1,13 +1,7 @@
-<p align="center">
-  <img src="art/logo.svg" width="800" alt="KDB">
-</p>
-
 # KDB: Kotlin Multiplatform SQLite Wrapper
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Kotlin-2.1.10-blue?logo=kotlin" alt="Kotlin Version"/>
-  <img src="https://img.shields.io/badge/Platform-Multiplatform-orange" alt="Platform Support"/>
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
+  <img src="art/kdb_logo.png" alt="KDB Logo" width="200"/>
 </p>
 
 KDB is a lightweight, type-safe SQLite wrapper for Kotlin Multiplatform.
